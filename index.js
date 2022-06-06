@@ -10,14 +10,7 @@ class Book {
 //UI CLass //Hansdle UT Tasks
 class UI {
 	static displayBooks() {
-		const StoredBooks = [
-			{ title: 'Book One', author: 'Mbugua Caleb', 'isbn': "5765765765" },
-			{ title: 'Book Two', author: 'Mercy Wanjiru', 'isbn': "67567575" }
-		]
-
-		//assumming that stored books is coming from local Storage
-		const books = StoredBooks
-
+		const books = Store.getBooks()
 		books.forEach(book => UI.addBookToList(book));
 	}
 
@@ -43,6 +36,21 @@ class UI {
 			el.parentElement.parentElement.remove()
 		}
 	}
+
+	static showAlert(message, className) {
+
+		const div = document.createElement('div')
+		div.className = `alert alert-${className}`
+		div.appendChild(document.createTextNode(message))
+		const container = document.querySelector('.container')
+		const form = document.querySelector('#book-form')
+		container.insertBefore(div, form)
+
+		//Vanish in 3 seconds
+		setTimeout(() => document.querySelector('.alert').remove(), 3000);
+	}
+
+
 	static clearFields() {
 		document.querySelector('#title').value = ''
 		document.querySelector('#author').value = ''
@@ -52,7 +60,38 @@ class UI {
 }
 
 //Store Class:Handles Storage
+class Store {
+	static getBooks() {
+		let books;
+		if (localStorage.getItem('books') === null) {
+			books = []
+		} else {
 
+			//When i am retrieveing from local stroage, remember that i can loop through so i use JSON.Parse
+			books = JSON.parse(localStorage.getItem('books'))
+		}
+		return books;
+	}
+	static addBook(book) {
+		const books = Store.getBooks()
+		books.push(book)
+		//When adding to localStorage i add a String
+		localStorage.setItem('books', JSON.stringify(books))
+
+	}
+	static removeBook(isbn) {
+		const books = Store.getBooks()
+
+		books.forEach((book, index) => {
+			if (book.isbn === isbn) {
+				books.splice(index, 1)
+			}
+		})
+
+		//Updating the value of local storage
+		localStorage.setItem('books', JSON.stringify(books))
+	}
+}
 
 //Events: Displaty Books
 document.addEventListener("DOMContentLoaded", UI.displayBooks)
@@ -65,18 +104,36 @@ document.querySelector("#book-form").addEventListener("submit", (e) => {
 	const author = document.querySelector("#author").value
 	const isbn = document.querySelector("#isbn").value
 
-	//Instanticate Book
-	const book = new Book(title, author, isbn)
+	//Validate
 
-	//Add Book to UI
-	UI.addBookToList(book)
+	if (title === '' || author === '' || isbn === '') {
+		UI.showAlert('Please fill all fields', 'danger')
+	} else {
+		//Instanticate Book
+		const book = new Book(title, author, isbn)
 
-	//Clear fields
-	UI.clearFields()
+		//Add Book to UI
+		UI.addBookToList(book)
+
+		//Add Book to Store
+		Store.addBook(book)
+
+		//Show success Message
+		UI.showAlert('Book Added', 'success')
+
+		//Clear fields
+		UI.clearFields()
+	}
+
 
 })
 
 //Event Remove a Book
 document.querySelector("#book-list").addEventListener("click", (e) => {
 	UI.deleteBook(e.target)
+
+	//Remove book from Store
+	Store.removeBook(e.target.parentElement.previousElementSibling.textContent)
+	//Show success Message
+	UI.showAlert('Book Removed', 'success')
 })
